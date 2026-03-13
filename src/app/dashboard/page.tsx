@@ -24,17 +24,17 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-svh bg-[linear-gradient(160deg,#FFE4E6_0%,#FFF1E6_35%,#FEF3C7_70%,#D1FAE5_100%)] px-4 py-10 flex items-center justify-center">
       <Card className="w-full flex max-w-3xl flex-col gap-6 rounded-[28px] bg-white/90 p-6 shadow-[0_8px_32px_rgba(251,146,60,0.15)] backdrop-blur-sm md:p-8">
-        <CardHeader className="flex flex-col gap-1">
-          <CardTitle className="text-2xl md:text-3xl">
+        <CardHeader className="flex flex-col gap-2">
+          <CardTitle className="text-3xl md:text-4xl">
             Meus sorteios
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-base md:text-lg">
             Crie e gerencie os sorteios que você irá conduzir.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-8">
           <section className="flex flex-col gap-3">
-            <h2 className="text-sm font-medium text-muted-foreground">
+            <h2 className="text-base font-medium text-muted-foreground">
               Criar novo sorteio
             </h2>
             <form action={handleCreate} className="flex flex-col gap-3 md:flex-row">
@@ -54,11 +54,11 @@ export default async function DashboardPage() {
           </section>
 
           <section className="flex flex-col gap-4">
-            <h2 className="text-sm font-medium text-muted-foreground">
+            <h2 className="text-base font-medium text-muted-foreground">
               Sorteios cadastrados
             </h2>
             {raffles.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-base text-muted-foreground">
                 Você ainda não criou nenhum sorteio. Comece criando um acima.
               </p>
             ) : (
@@ -71,11 +71,11 @@ export default async function DashboardPage() {
                     <summary className="flex cursor-pointer list-none flex-col gap-1 md:flex-row md:items-center md:justify-between">
                       <div>
                         <p className="font-medium">{raffle.name}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-sm text-muted-foreground">
                           Código: <span className="font-mono">{raffle.slug}</span>
                         </p>
                       </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground md:mt-0">
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground md:mt-0">
                         <span>
                           {raffle.participantsCount} participante
                           {raffle.participantsCount === 1 ? "" : "s"}

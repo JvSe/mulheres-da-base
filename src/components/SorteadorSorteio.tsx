@@ -7,6 +7,7 @@ import {
 } from "@/app/actions/participants";
 import type { ParticipantItem } from "@/lib/participants-server";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,24 +24,34 @@ type Props = {
 };
 
 export default function SorteadorSorteio({ raffleId, initialParticipants = [] }: Props) {
-  const [participants, setParticipants] = useState<ParticipantItem[]>(
-    () => initialParticipants
-  );
-  const [refetching, setRefetching] = useState(false);
-  const [winner, setWinner] = useState<string | null>(null);
+  const [participants, setParticipants] = useState<ParticipantItem[]>(() => initialParticipants);
+  const [winners, setWinners] = useState<ParticipantItem[]>([]);
+  const [usedWinnerIds, setUsedWinnerIds] = useState<string[]>([]);
   const [isSpinning, setIsSpinning] = useState(false);
   const [spinPreview, setSpinPreview] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchParticipants = useCallback(async () => {
-    if (!raffleId) return;
-    setRefetching(true);
-    const result = await getParticipantsForRaffle(raffleId);
-    if (result.success) {
-      setParticipants(result.participants);
-    }
-    setRefetching(false);
-  }, [raffleId]);
+  const {
+    data,
+    isFetching,
+    refetch,
+  } = useQuery({
+    queryKey: ["raffle-participants", raffleId],
+    queryFn: async () => {
+      const result = await getParticipantsForRaffle(raffleId);
+      return result.success ? result : { participants: initialParticipants, usedWinnerIds: [] };
+    },
+    initialData: { participants: initialParticipants, usedWinnerIds: [] },
+    refetchInterval: 5000,
+  });
+
+  const liveParticipants = data?.participants ?? initialParticipants;
+  const liveUsedWinnerIds = data?.usedWinnerIds ?? [];
+
+  useEffect(() => {
+    setParticipants(liveParticipants);
+    setUsedWinnerIds(liveUsedWinnerIds);
+  }, [liveParticipants, liveUsedWinnerIds]);
 
   useEffect(() => {
     return () => {
@@ -51,16 +62,17 @@ export default function SorteadorSorteio({ raffleId, initialParticipants = [] }:
   }, []);
 
   const handleSortear = useCallback(() => {
-    if (participants.length === 0) return;
+    const available = participants.filter((p) => !usedWinnerIds.includes(p.id));
+    if (available.length === 0) return;
     if (isSpinning) return;
 
     setIsSpinning(true);
-    setWinner(null);
+    setWinners([]);
 
     const duration = 2500;
     const start = Date.now();
     let lastIndex = -1;
-    const participantsSnapshot = participants;
+    const participantsSnapshot = available;
 
     intervalRef.current = setInterval(() => {
       const elapsed = Date.now() - start;
@@ -78,22 +90,34 @@ export default function SorteadorSorteio({ raffleId, initialParticipants = [] }:
       if (progress >= 1 && intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
-        const finalIdx = Math.floor(Math.random() * participantsSnapshot.length);
-        const winnerParticipant = participantsSnapshot[finalIdx];
-        setWinner(winnerParticipant.name);
+        const count = Math.min(5, participantsSnapshot.length);
+        const picked: ParticipantItem[] = [];
+        const usedLocal = new Set<string>();
+        while (picked.length < count) {
+          const idx = Math.floor(Math.random() * participantsSnapshot.length);
+          const candidate = participantsSnapshot[idx];
+          if (!usedLocal.has(candidate.id)) {
+            usedLocal.add(candidate.id);
+            picked.push(candidate);
+          }
+        }
+        setWinners(picked);
+        setUsedWinnerIds((prev) => [...prev, ...picked.map((p) => p.id)]);
         setSpinPreview(null);
         setIsSpinning(false);
 
-        createDrawForRaffle(
-          raffleId,
-          participantsSnapshot.map((p) => p.id),
-          winnerParticipant.id
-        );
+        picked.forEach((winnerParticipant) => {
+          void createDrawForRaffle(
+            raffleId,
+            participants.map((p) => p.id),
+            winnerParticipant.id
+          );
+        });
       }
     }, 80);
-  }, [participants, isSpinning, raffleId]);
+  }, [participants, usedWinnerIds, isSpinning, raffleId]);
 
-  const canSortear = participants.length > 0 && !isSpinning;
+  const canSortear = participants.some((p) => !usedWinnerIds.includes(p.id)) && !isSpinning;
 
   return (
     <div className="flex flex-col gap-6">
@@ -102,7 +126,7 @@ export default function SorteadorSorteio({ raffleId, initialParticipants = [] }:
           <h2 className="text-2xl font-medium leading-tight md:text-3xl">
             Realizar Sorteio
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             Participantes cadastrados via QR Code
           </p>
         </div>
@@ -110,11 +134,11 @@ export default function SorteadorSorteio({ raffleId, initialParticipants = [] }:
 
       {participants.length === 0 ? (
         <Card className="border-dashed">
-          <CardContent className="flex flex-col gap-2 p-8 text-center">
-            <p className="text-muted-foreground">
+            <CardContent className="flex flex-col gap-3 p-8 text-center">
+            <p className="text-base text-muted-foreground">
               Nenhum participante cadastrado ainda.
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-base text-muted-foreground">
               As participantes devem escanear o QR Code e cadastrar o nome em{" "}
               <Button variant="link" size="sm" className="p-0 h-auto font-medium" asChild>
                 <Link href="/participar">/participar</Link>
@@ -126,13 +150,17 @@ export default function SorteadorSorteio({ raffleId, initialParticipants = [] }:
         <div className="flex flex-col gap-5">
           <Card className="min-h-[160px] bg-[linear-gradient(135deg,#fce7f3_0%,#fef3c7_45%,#e0f2fe_100%)] text-rose-900">
             <CardContent className="flex min-h-[160px] flex-col items-center justify-center gap-3 py-6 px-4 sm:py-8 sm:px-8">
-              {winner ? (
-                <p
-                  key={winner}
-                  className="animate-pop-in text-center text-2xl font-bold md:text-4xl"
-                >
-                  ✨ {winner} ✨
-                </p>
+              {winners.length ? (
+                <div className="flex flex-col items-center gap-2">
+                  {winners.map((w) => (
+                    <p
+                      key={w.id}
+                      className="animate-pop-in text-center text-xl font-bold md:text-3xl"
+                    >
+                      ✨ {w.name} ✨
+                    </p>
+                  ))}
+                </div>
               ) : spinPreview ? (
                 <p className="animate-pulse text-center text-xl font-semibold opacity-90 md:text-2xl">
                   {spinPreview}
@@ -158,7 +186,7 @@ export default function SorteadorSorteio({ raffleId, initialParticipants = [] }:
           <Card className="border-rose-100 bg-rose-50/60">
             <CardContent className="flex flex-col gap-3 pt-4 px-3 sm:pt-6 sm:px-6">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-sm font-medium text-muted-foreground">
+                <span className="text-base font-medium text-muted-foreground">
                   {participants.length} participante
                   {participants.length !== 1 ? "s" : ""}
                 </span>
@@ -166,11 +194,11 @@ export default function SorteadorSorteio({ raffleId, initialParticipants = [] }:
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={fetchParticipants}
-                  disabled={refetching}
+                  onClick={() => refetch()}
+                  disabled={isFetching}
                   className="text-rose-500 hover:bg-rose-50"
                 >
-                  Atualizar lista
+                  {isFetching ? "Atualizando..." : "Atualizar lista"}
                 </Button>
               </div>
               <ul className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1 sm:max-h-56">

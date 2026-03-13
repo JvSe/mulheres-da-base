@@ -29,13 +29,13 @@ export default async function RaffleAdminPage({
   return (
     <div className="min-h-svh bg-[linear-gradient(160deg,#FFE4E6_0%,#FFF1E6_35%,#FEF3C7_70%,#D1FAE5_100%)] px-3 py-8 flex items-center justify-center sm:px-4 sm:py-10">
       <Card className="w-full max-w-2xl rounded-[28px] bg-white/90 p-4 shadow-[0_8px_32px_rgba(251,146,60,0.15)] backdrop-blur-sm sm:p-6 md:p-8">
-        <CardHeader className="flex flex-col gap-1">
-          <CardTitle className="text-2xl md:text-3xl">
+        <CardHeader className="flex flex-col gap-2">
+          <CardTitle className="text-3xl md:text-4xl">
             {raffle.name}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-base md:text-lg">
             Código do sorteio:{" "}
-            <span className="font-mono text-xs">{raffle.slug}</span>
+            <span className="font-mono text-sm md:text-base">{raffle.slug}</span>
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">

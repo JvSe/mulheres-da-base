@@ -40,8 +40,8 @@ export default function LoginPage() {
     <div className="min-h-svh bg-[linear-gradient(160deg,#FFE4E6_0%,#FFF1E6_35%,#FEF3C7_70%,#D1FAE5_100%)] px-4 py-10 flex items-center justify-center">
       <Card className="w-full max-w-md rounded-[28px] bg-white/90 p-6 shadow-[0_8px_32px_rgba(251,146,60,0.15)] backdrop-blur-sm md:p-8">
         <CardHeader className="flex flex-col gap-2 text-center">
-          <CardTitle className="text-2xl md:text-3xl">Entrar</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-3xl md:text-4xl">Entrar</CardTitle>
+          <CardDescription className="text-base md:text-lg">
             Acesse para gerenciar participantes e sorteios
           </CardDescription>
         </CardHeader>
@@ -93,7 +93,7 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <p className="text-center text-xs text-muted-foreground">
+          <p className="text-center text-sm text-muted-foreground">
             <Button
               variant="outline"
               size="sm"

@@ -1,9 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
-import Link from "next/link";
-import { CheckCircle2 } from "lucide-react";
 import { registerParticipantForRaffle } from "@/app/actions/participants";
 import { getRaffleBySlug } from "@/app/actions/raffles";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -17,6 +13,10 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function ParticiparBySlugPage() {
   const params = useParams<{ slug: string }>();
@@ -94,11 +94,11 @@ export default function ParticiparBySlugPage() {
   return (
     <div className="min-h-svh bg-[linear-gradient(160deg,#FFE4E6_0%,#FFF1E6_35%,#FEF3C7_70%,#D1FAE5_100%)] px-4 py-10 flex items-center justify-center">
       <Card className="w-full max-w-md rounded-[28px] bg-white/90 p-6 shadow-[0_8px_32px_rgba(251,146,60,0.15)] backdrop-blur-sm md:p-8">
-        <CardHeader className="flex flex-col gap-1">
-          <CardTitle className="text-2xl md:text-3xl">
+        <CardHeader className="flex flex-col gap-2">
+          <CardTitle className="text-3xl md:text-4xl">
             {raffleName ?? "Sorteio não encontrado"}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-base md:text-lg">
             {raffleName
               ? "Cadastre seu nome para participar deste sorteio. Depois é só aguardar o sorteio ser realizado."
               : "Verifique se o código do sorteio está correto."}
@@ -159,7 +159,7 @@ export default function ParticiparBySlugPage() {
             </Alert>
           )}
 
-          <p className="text-center text-xs text-orange-500/70">
+          <p className="text-center text-sm text-orange-500/70">
             <Button variant="link" size="sm" asChild>
               <Link href="/">Voltar para início</Link>
             </Button>

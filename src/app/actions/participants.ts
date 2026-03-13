@@ -87,22 +87,31 @@ export async function registerParticipantForRaffle(raffleId: string, name: strin
 export async function getParticipantsForRaffle(raffleId: string): Promise<{
   success: boolean;
   participants: ParticipantDto[];
+  usedWinnerIds: string[];
 }> {
   if (!raffleId) {
-    return { success: false, participants: [] };
+    return { success: false, participants: [], usedWinnerIds: [] };
   }
   try {
     const list = await prisma.participant.findMany({
       where: { raffleId },
       orderBy: { createdAt: "desc" },
     });
+    const draws = await prisma.draw.findMany({
+      where: { raffleId, winnerId: { not: null } },
+      select: { winnerId: true },
+    });
+    const usedWinnerIds = draws
+      .map((d) => d.winnerId)
+      .filter((id): id is string => !!id);
     return {
       success: true,
       participants: list.map((p) => ({ id: p.id, name: p.name })),
+      usedWinnerIds,
     };
   } catch (e) {
     console.error(e);
-    return { success: false, participants: [] };
+    return { success: false, participants: [], usedWinnerIds: [] };
   }
 }
 
