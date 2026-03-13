@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Participant {
+  id        String            @id @default(uuid())
+  name      String
+  createdAt DateTime          @default(now())
+  draws     DrawParticipant[]
+  wins      Draw[]            @relation("DrawWinner")
+
+  @@map("participants")
+}
+
+model Draw {
+  id           String            @id @default(uuid())
+  winnerId     String?
+  winner       Participant?      @relation("DrawWinner", fields: [winnerId], references: [id], onDelete: SetNull)
+  participants DrawParticipant[]
+  createdAt    DateTime          @default(now())
+
+  @@map("draws")
+}
+
+model DrawParticipant {
+  id            String      @id @default(uuid())
+  drawId        String      @map("drawId")
+  draw          Draw        @relation(fields: [drawId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([drawId, participantId])
+  @@map("draw_participants")
+}
