@@ -2,24 +2,27 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import {
-  getParticipants,
-  createDraw,
-  type ParticipantItem,
+  getParticipantsForRaffle,
+  createDrawForRaffle,
 } from "@/app/actions/participants";
+import type { ParticipantItem } from "@/lib/participants-server";
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
-const CHIP_COLORS = [
-  "bg-pink-100 text-pink-800",
-  "bg-amber-100 text-amber-800",
-  "bg-emerald-100 text-emerald-800",
-  "bg-sky-100 text-sky-800",
-  "bg-violet-100 text-violet-800",
+const BADGE_VARIANTS = [
+  "default",
+  "secondary",
+  "outline",
 ] as const;
 
 type Props = {
+  raffleId: string;
   initialParticipants?: ParticipantItem[];
 };
 
-export default function SorteadorSorteio({ initialParticipants = [] }: Props) {
+export default function SorteadorSorteio({ raffleId, initialParticipants = [] }: Props) {
   const [participants, setParticipants] = useState<ParticipantItem[]>(
     () => initialParticipants
   );
@@ -30,13 +33,14 @@ export default function SorteadorSorteio({ initialParticipants = [] }: Props) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchParticipants = useCallback(async () => {
+    if (!raffleId) return;
     setRefetching(true);
-    const result = await getParticipants();
+    const result = await getParticipantsForRaffle(raffleId);
     if (result.success) {
       setParticipants(result.participants);
     }
     setRefetching(false);
-  }, []);
+  }, [raffleId]);
 
   useEffect(() => {
     return () => {
@@ -80,106 +84,109 @@ export default function SorteadorSorteio({ initialParticipants = [] }: Props) {
         setSpinPreview(null);
         setIsSpinning(false);
 
-        createDraw(
+        createDrawForRaffle(
+          raffleId,
           participantsSnapshot.map((p) => p.id),
           winnerParticipant.id
         );
       }
     }, 80);
-  }, [participants, isSpinning]);
+  }, [participants, isSpinning, raffleId]);
 
   const canSortear = participants.length > 0 && !isSpinning;
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-orange-600 md:text-3xl">
+      <header className="flex flex-row flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-2xl font-medium leading-tight md:text-3xl">
             Realizar Sorteio
-          </h1>
-          <p className="mt-1 text-sm text-orange-500/90">
+          </h2>
+          <p className="text-sm text-muted-foreground">
             Participantes cadastrados via QR Code
           </p>
         </div>
-        <a
-          href="/participar"
-          className="rounded-[12px] bg-orange-100 px-3 py-1.5 text-sm font-medium text-orange-700 transition hover:bg-orange-200"
-        >
-          Participar
-        </a>
       </header>
 
       {participants.length === 0 ? (
-        <section className="rounded-[20px] border border-orange-200/60 border-dashed bg-white/50 p-8 text-center">
-          <p className="text-orange-600/80">
-            Nenhum participante cadastrado ainda.
-          </p>
-          <p className="mt-1 text-sm text-orange-500/70">
-            As participantes devem escanear o QR Code e cadastrar o nome em{" "}
-            <a href="/participar" className="font-medium underline">
-              /participar
-            </a>
-          </p>
-        </section>
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col gap-2 p-8 text-center">
+            <p className="text-muted-foreground">
+              Nenhum participante cadastrado ainda.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              As participantes devem escanear o QR Code e cadastrar o nome em{" "}
+              <Button variant="link" size="sm" className="p-0 h-auto font-medium" asChild>
+                <Link href="/participar">/participar</Link>
+              </Button>
+            </p>
+          </CardContent>
+        </Card>
       ) : (
-        <>
-          <section className="rounded-[20px] border border-orange-200/60 bg-white p-5 shadow-[0_4px_16px_rgba(251,146,60,0.12)]">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="text-sm font-medium text-orange-700/80">
-                {participants.length} participante
-                {participants.length !== 1 ? "s" : ""}
-              </span>
-              <button
-                type="button"
-                onClick={fetchParticipants}
-                disabled={refetching}
-                className="rounded-[12px] px-2.5 py-1 text-sm text-orange-600/80 transition hover:bg-orange-100 hover:text-orange-700"
-              >
-                Atualizar
-              </button>
-            </div>
-            <ul className="flex flex-wrap gap-2">
-              {participants.map((p, i) => (
-                <li
-                  key={p.id}
-                  className={`rounded-[14px] py-2 pl-3 pr-2 ${CHIP_COLORS[i % CHIP_COLORS.length]}`}
-                >
-                  <span className="text-sm font-medium">{p.name}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="flex flex-col gap-5">
-            <button
-              type="button"
-              onClick={handleSortear}
-              disabled={!canSortear}
-              className="rounded-[20px] bg-linear-to-r from-orange-400 via-amber-400 to-amber-500 px-8 py-4 text-lg font-bold text-white shadow-[0_6px_20px_rgba(251,146,60,0.45)] transition hover:from-orange-500 hover:via-amber-500 hover:to-amber-600 hover:shadow-[0_8px_24px_rgba(251,146,60,0.5)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
-            >
-              {isSpinning ? "Sorteando..." : "🎲 Sortear"}
-            </button>
-
-            <div className="flex min-h-[140px] flex-col items-center justify-center rounded-[20px] bg-[linear-gradient(135deg,#FB923C_0%,#F59E0B_50%,#EAB308_100%)] px-6 py-8 shadow-[0_6px_20px_rgba(251,146,60,0.3)]">
+        <div className="flex flex-col gap-5">
+          <Card className="min-h-[160px] bg-[linear-gradient(135deg,#fce7f3_0%,#fef3c7_45%,#e0f2fe_100%)] text-rose-900">
+            <CardContent className="flex min-h-[160px] flex-col items-center justify-center gap-3 py-6 px-4 sm:py-8 sm:px-8">
               {winner ? (
                 <p
                   key={winner}
-                  className="animate-pop-in text-center text-2xl font-bold text-white drop-shadow-md md:text-4xl"
+                  className="animate-pop-in text-center text-2xl font-bold md:text-4xl"
                 >
-                  🎉 {winner} 🎉
+                  ✨ {winner} ✨
                 </p>
               ) : spinPreview ? (
-                <p className="animate-pulse text-center text-xl font-semibold text-white/90 md:text-2xl">
+                <p className="animate-pulse text-center text-xl font-semibold opacity-90 md:text-2xl">
                   {spinPreview}
                 </p>
               ) : (
-                <p className="text-center text-sm text-white/70">
-                  O nome sorteado aparecerá aqui
+                <p className="text-center text-sm opacity-80">
+                  O nome sorteado aparecerá aqui assim que o sorteio for realizado.
                 </p>
               )}
-            </div>
-          </section>
-        </>
+            </CardContent>
+          </Card>
+
+          <Button
+            type="button"
+            size="lg"
+            className="w-full text-lg font-semibold bg-linear-to-r from-pink-400 via-rose-400 to-amber-300 text-white shadow-[0_4px_18px_rgba(244,114,182,0.45)] hover:from-pink-500 hover:via-rose-500 hover:to-amber-400"
+            onClick={handleSortear}
+            disabled={!canSortear}
+          >
+            {isSpinning ? "Sorteando..." : "Sortear"}
+          </Button>
+
+          <Card className="border-rose-100 bg-rose-50/60">
+            <CardContent className="flex flex-col gap-3 pt-4 px-3 sm:pt-6 sm:px-6">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm font-medium text-muted-foreground">
+                  {participants.length} participante
+                  {participants.length !== 1 ? "s" : ""}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={fetchParticipants}
+                  disabled={refetching}
+                  className="text-rose-500 hover:bg-rose-50"
+                >
+                  Atualizar lista
+                </Button>
+              </div>
+              <ul className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1 sm:max-h-56">
+                {participants.map((p, i) => (
+                  <Badge
+                    key={p.id}
+                    variant={BADGE_VARIANTS[i % BADGE_VARIANTS.length]}
+                    className="py-1.5 px-3"
+                  >
+                    {p.name}
+                  </Badge>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );

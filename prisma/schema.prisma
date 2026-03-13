@@ -8,11 +8,15 @@ datasource db {
 }
 
 model Participant {
-  id        String            @id @default(uuid())
-  name      String
-  createdAt DateTime          @default(now())
-  draws     DrawParticipant[]
-  wins      Draw[]            @relation("DrawWinner")
+  id          String            @id @default(uuid())
+  name        String
+  createdAt   DateTime          @default(now())
+  draws       DrawParticipant[]
+  wins        Draw[]            @relation("DrawWinner")
+  createdById String?
+  createdBy   User?             @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  raffleId    String?
+  raffle      Raffle?           @relation(fields: [raffleId], references: [id], onDelete: Cascade)
 
   @@map("participants")
 }
@@ -23,6 +27,10 @@ model Draw {
   winner       Participant?      @relation("DrawWinner", fields: [winnerId], references: [id], onDelete: SetNull)
   participants DrawParticipant[]
   createdAt    DateTime          @default(now())
+  createdById  String?
+  createdBy    User?             @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  raffleId     String?
+  raffle       Raffle?           @relation(fields: [raffleId], references: [id], onDelete: Cascade)
 
   @@map("draws")
 }
@@ -36,4 +44,31 @@ model DrawParticipant {
 
   @@unique([drawId, participantId])
   @@map("draw_participants")
+}
+
+model Raffle {
+  id          String        @id @default(uuid())
+  name        String
+  slug        String        @unique
+  createdAt   DateTime      @default(now())
+  createdById String?
+  createdBy   User?         @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  participants Participant[]
+  draws        Draw[]
+
+  @@map("raffles")
+}
+
+model User {
+  id           String         @id @default(uuid())
+  email        String         @unique
+  name         String?
+  passwordHash String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  participants Participant[]
+  draws        Draw[]
+  raffles      Raffle[]
+
+  @@map("users")
 }
